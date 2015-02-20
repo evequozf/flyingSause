@@ -1,0 +1,48 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html>
+  <head>   
+     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>Datastory.ch</title>
+</head>
+<body>
+<script src="./d3.v3.min.js"></script>
+<script>
+
+list = [
+	"Truc",
+	"Machin",
+	"C'est tout"
+]
+
+w = 800;
+h = 600;
+
+svg = d3.select("body").append("svg")
+	.attr("width",w)
+	.attr("height",h);	
+
+function go(element) {
+	//todo prochaine étape: des g plutôt, avec un transform scale pour resizer tout ...
+	//optimisation ? d3 over webgl ? perte souplesse xml ?
+	svg.append("text")
+		.attr("x",w/2)
+		.attr("y",h/2)
+		.style("text-anchor","middle")
+		.html(element)
+		.transition()
+			.duration(8000)
+			.style("font-size","100")
+			.style("opacity","0")
+			.attr("x",Math.random()*w)
+			.attr("y",Math.random()*h);
+}
+
+counter = 0;
+d3.select("body").append("button")
+	.on("click", function() {
+		go(list[counter++ % list.length]);
+	})
+	.text("NEXT");
+
+</script>
+</body>
