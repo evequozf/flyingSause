@@ -4,9 +4,47 @@
      <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<title>Datastory.ch</title>
 </head>
+<style>
+ 
+body {
+	/*font: 10px 'Gentium Book Basic', sans-serif;*/
+	font: 10px Helvetica, sans-serif;
+	background-color: #000;
+	padding:0;
+}
+ 
+svg * {
+	fill: #fff;
+}
+
+button {
+	color: black;
+	border: 1px solid cyan;
+	background-color: black;
+	outline: none;
+}
+
+path {
+	fill: #fff;
+	stroke: #eee;
+	stroke-width: 1em;
+}
+
+</style>
 <body>
+<!-- CASTLE -->
+<!--
+<svg width=400 height=400>
+<g transform="scale 0.5">
+<path d="m 319,55 -40,0 0,35 -25,0 0,-35 -40,0 0,35 -25,0 0,-35 -40,0 0,35 -25,0 0,-35 -39.998104,0.0036 0,59.99447 29.994194,30.00971 L 114,307 l -15,18 0,25 205,0 0.0223,-24.95536 L 289,306.99875 289,145 l 30,-30 0,-60 z" />
+</g>
+</svg>
+-->
 <script src="./d3.v3.min.js"></script>
 <script>
+
+castle_shape = "m 319,55 -40,0 0,35 -25,0 0,-35 -40,0 0,35 -25,0 0,-35 -40,0 0,35 -25,0 0,-35 -39.998104,0.0036 0,59.99447 29.994194,30.00971 L 114,307 l -15,18 0,25 205,0 0.0223,-24.95536 L 289,306.99875 289,145 l 30,-30 0,-60 z";
+
 
 list = [
 	"Truc",
@@ -21,20 +59,33 @@ svg = d3.select("body").append("svg")
 	.attr("width",w)
 	.attr("height",h);	
 
+function draw(element,shape) {
+	element.append("g")
+		.attr("transform","scale(0.5)")
+		.append("path")
+		.attr("d",shape);
+}
+
 function go(element) {
-	//todo prochaine étape: des g plutôt, avec un transform scale pour resizer tout ...
-	//optimisation ? d3 over webgl ? perte souplesse xml ?
-	svg.append("text")
-		.attr("x",w/2)
-		.attr("y",h/2)
+	//optimisation: d3 over webgl ? perte souplesse xml ?
+	var g = svg.append("g");
+	var x = w/2, 
+		y = h/2;
+	//draw(g,castle_shape);
+	g.append("text")
+		.attr("x",x)
+		.attr("y",y)
 		.style("text-anchor","middle")
 		.html(element)
-		.transition()
+	var newX = Math.random()*w,
+		newY = Math.random()*h,
+		scale = 4;
+	g.transition()
 			.duration(8000)
-			.style("font-size","100")
-			.style("opacity","0")
-			.attr("x",Math.random()*w)
-			.attr("y",Math.random()*h);
+			.attr("transform","scale("+scale+") "
+				+ "translate("+(newX/scale-x)+","+(newY/scale-y)
+				+")")
+			.style("opacity","0");
 }
 
 counter = 0;
