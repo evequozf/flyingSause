@@ -14,7 +14,7 @@ body {
 }
  
 svg {
-	border: 1px solid white;
+	//border: 1px solid white;
 }
  
 /*
@@ -32,8 +32,9 @@ svg * {
 }
 
 button {
-	color: black;
-	border: 1px solid cyan;
+	//color: black;
+	color: white;
+	//border: 1px solid cyan;
 	background-color: black;
 	outline: none;
 }
@@ -45,29 +46,24 @@ path {
 
 </style>
 <body>
-<!-- CASTLE -->
-<!--
-<svg width=400 height=400>
-<g transform="scale 0.5">
-<path d="m 319,55 -40,0 0,35 -25,0 0,-35 -40,0 0,35 -25,0 0,-35 -40,0 0,35 -25,0 0,-35 -39.998104,0.0036 0,59.99447 29.994194,30.00971 L 114,307 l -15,18 0,25 205,0 0.0223,-24.95536 L 289,306.99875 289,145 l 30,-30 0,-60 z" />
-</g>
-</svg>
--->
 <script src="./d3.v3.min.js"></script>
+<script src="./d3-jetpack.js"></script>
 <script>
 
 /*
 //optimisation: d3 over webgl ? perte souplesse xml ?
 */
 
-castle_shape = "m 319,55 -40,0 0,35 -25,0 0,-35 -40,0 0,35 -25,0 0,-35 -40,0 0,35 -25,0 0,-35 -39.998104,0.0036 0,59.99447 29.994194,30.00971 L 114,307 l -15,18 0,25 205,0 0.0223,-24.95536 L 289,306.99875 289,145 l 30,-30 0,-60 z";
-rectangle_shape = "M0,0 200,0 200,254 0,254"
+//TODO : put all this in a "dict" structure with number index (or array)
+castle_shape = "M144.333,2.495H120.56v23.019 h-14.857V2.495H81.929v23.019H67.07V2.495H43.297v23.019H28.438V2.495L4.667,2.497v39.456l17.826,19.736l0.002,106.537 l-8.915,11.838v16.441h121.839l0.013-16.412l-8.929-11.868V61.685l17.83-19.729V2.495L144.333,2.495z";
+rectangle_shape = "M0,5 150,5 150,190 5,190";
+church_shape = "M0.451,57.306L26.444,6.333l26.254,50.973v63.216h71.376l25.475,28.541v44.604H0.451V57.306L0.451,57.306z";
 
-
+//TODO : fix
 list = [
-	"Truc",
-	"Machin",
-	"Bidule"
+	["Truc","1920 Steffisburg"],
+	["Machin","Huile sur toile","1986"],
+	["Bidule","Rue du Clos","1211 Genève"]
 ]
 
 w = 1200;
@@ -78,13 +74,15 @@ svg = d3.select("body").append("svg")
 	.attr("height",h);	
 
 /** Animate objects from to */
-function go(truc,from,to,classe) {
+function go(truc,from,to,classe,isOnLeft) {
 	//default parameters
 	(typeof classe === "undefined") ? "color1" : classe;
+	(typeof isOnLeft === "undefined") ? true : false;
+	
 	var g = svg.append("g")
 		.attr("transform","translate("+from.x+","+from.y+")")
 		.attr("class",classe);
-	create(g,truc);
+	create(g,truc,isOnLeft);
 	var	scale = 0.1;
 	g.transition()
 			.duration(8000)
@@ -98,28 +96,33 @@ function go(truc,from,to,classe) {
 			//.remove() //TODO if needed with optimization
 }
 
-function create(element,text) {
-	var g = element.append("g")
+/** Creates a new "item" that is displayed wether right or left and attach it to the element
+text is an array with multiple lines */
+function create(element,text,isOnLeft) {
+	//append the text
+	var text_g = element.append("g")
 		//.remove()   //remove from the dom immediately after having added it //FIXME
 		.append("text")
 		.attr("x",0)
 		.attr("y",0)
-		.style("text-anchor","middle")
-		.attr("transform","translate(0,50)")
-		.html(text);
+		.style("text-anchor",isOnLeft?"end":"start")
+		.attr("transform","translate("+(isOnLeft?"-10":"160")+",50)")
+		.tspans(text,25); //25 = interligne
+	
+	//append the shape
 	var shape_g = element.append("g")
 			.attr("transform","scale(0)");
 	shape_g.append("path")
-		.attr("d",Math.random()>0.5 ? castle_shape : rectangle_shape);
+		.attr("d",Math.random()>0.33 ? 
+			(Math.random()>0.5 ? castle_shape : church_shape) : rectangle_shape) //FIXME !!
 	shape_g.transition()
 		.duration(1000)
-		.attr("transform","scale(0.5)")
+		.attr("transform","scale(1)")
 	//FIXME -> takes only the text...
-	g.style("opacity","0")
+	text_g.style("opacity","0")
 		.transition()
 		.duration(1000)
 			.style("opacity","1");
-	return g;
 }
 
 // jitter along one dimension in the given span
@@ -127,13 +130,15 @@ function jitter(coord,span) {
 	return coord + (Math.random()>0.5 ? -1 : 1) * Math.random()*span/2;
 }
 
+/* Main functions, randomized for tests. TODO: check jitter values */
 who = 0;
 function display(truc) {
 	go(truc,
 			{x:(++who % 2 == 0) ? jitter(100,50) : jitter(w-200,50),
 				y:jitter(h-300,100)},
 			{x:w/2,y:0},
-			(who % 2 == 0) ? "color1" : "color2"
+			(who % 2 == 0) ? "color1" : "color2",  // class
+			(who % 2)   //left or right
 		);
 }
 
@@ -142,7 +147,7 @@ d3.select("body").append("button")
 	.on("click", function() {
 		display(list[counter++ % list.length]);
 	})
-	.text("NEXT");
+	.text("GO");
 
 </script>
 </body>
