@@ -14,7 +14,7 @@ body {
 }
  
 svg {
-	//border: 1px solid white;
+	border: 1px solid white;
 }
  
 /*
@@ -24,13 +24,38 @@ svg * {
 */
 
 .color1 {
-	fill: #be64ac;
+	//fill: #be64ac;
+	fill: #F6F88C;
 }
 
 .color2 {
-	fill: #5ac8c8;
+	//fill: #5ac8c8;
+	fill: #74C4D4;
 }
 
+.color3 {
+	//fill: #be64ac;
+	fill: #D9EDE2
+}
+
+.color4 {
+	//fill: #5ac8c8;
+	fill: #ED2A45;
+}
+
+.color5 {
+	//fill: #5ac8c8;
+	fill: #333746;
+}
+
+/* //Adobe CC CS04 scheme
+#F6F88C
+#333746
+#74C4D4
+#D9EDE2
+#ED2A45
+
+*/
 button {
 	//color: black;
 	color: white;
@@ -41,11 +66,35 @@ button {
 
 path {
 	//stroke: #be64ac;
-	//stroke-width: 1em;
+	//stroke-width: 0.25em;
+	//fill: #fff;
+	stroke: #fff;
+}
+
+text {
+	//stroke: #fff;
+	//filter:url(#dropshadow);
+}
+
+rect {
+	fill: #333;
 }
 
 </style>
 <body>
+<svg>
+<!-- filter to drop shadow on text :: very ineffective -->
+<!--
+<filter id="dropshadow" height="130%">
+  <feGaussianBlur in="SourceAlpha" stdDeviation="3"/> 
+  <feOffset dx="2" dy="2" result="offsetblur"/> 
+  <feMerge> 
+    <feMergeNode/> 
+    <feMergeNode in="SourceGraphic"/> 
+  </feMerge>
+</filter>
+-->
+</svg>
 <script src="./d3.v3.min.js"></script>
 <script src="./d3-jetpack.js"></script>
 <script>
@@ -59,6 +108,8 @@ castle_shape = "M144.333,2.495H120.56v23.019 h-14.857V2.495H81.929v23.019H67.07V
 rectangle_shape = "M0,5 150,5 150,190 5,190";
 church_shape = "M0.451,57.306L26.444,6.333l26.254,50.973v63.216h71.376l25.475,28.541v44.604H0.451V57.306L0.451,57.306z";
 
+
+
 //TODO : fix
 list = [
 	["Truc","1920 Steffisburg"],
@@ -69,7 +120,7 @@ list = [
 w = 1200;
 h = 400;
 
-svg = d3.select("body").append("svg")
+svg = d3.select("svg")
 	.attr("width",w)
 	.attr("height",h);	
 
@@ -92,25 +143,38 @@ function go(truc,from,to,classe,isOnLeft) {
 			*/
 			.attr("transform","scale ("+scale+") translate("+to.x/scale+","+to.y/scale+")") 
 			//.attr("transform","translate("+to.x/scale+","+to.y/scale+")") // use this if no scaling
-			.style("opacity","0");
-			//.remove() //TODO if needed with optimization
+			.style("opacity","0")
+			.remove(); //TODO if needed with optimization
 }
 
 /** Creates a new "item" that is displayed wether right or left and attach it to the element
 text is an array with multiple lines */
 function create(element,text,isOnLeft) {
+	var start_text_transform = "translate("+(isOnLeft?"-30":"180")+",50)";
+	var end_text_transform = "translate("+(isOnLeft?"30":"120")+",50)";
+	
 	//append the text
-	var text_g = element.append("g")
-		//.remove()   //remove from the dom immediately after having added it //FIXME
-		.append("text")
+	var text_g = element
+		.append("g")
+		.attr("transform",start_text_transform)
+	text_g.append("text")
 		.attr("x",0)
 		.attr("y",0)
 		.style("text-anchor",isOnLeft?"end":"start")
-		.attr("transform","translate("+(isOnLeft?"-10":"160")+",50)")
 		.tspans(text,25); //25 = interligne
+		
+	var bbox = text_g.node().getBBox();
+	var pad = 5;
+	var bbox_g = element.insert("g",":first-child")
+		.attr("transform",start_text_transform)
+	bbox_g.append("rect")
+		.attr("x",bbox.x-pad)
+		.attr("y",bbox.y-pad)
+		.attr("width",bbox.width+2*pad)
+		.attr("height",bbox.height+2*pad);
 	
 	//append the shape
-	var shape_g = element.append("g")
+	var shape_g = element.insert("g",":first-child")
 			.attr("transform","scale(0)");
 	shape_g.append("path")
 		.attr("d",Math.random()>0.33 ? 
@@ -118,10 +182,25 @@ function create(element,text,isOnLeft) {
 	shape_g.transition()
 		.duration(1000)
 		.attr("transform","scale(1)")
+	
 	//FIXME -> takes only the text...
-	text_g.style("opacity","0")
+	/*element.style("opacity","0")
 		.transition()
 		.duration(1000)
+			.style("opacity","1");
+	*/
+	
+	text_g
+		.style("opacity","0")
+		.transition()
+		.duration(2000)
+			.attr("transform",end_text_transform)
+			.style("opacity","1");
+	bbox_g
+		.style("opacity","0")
+		.transition()
+		.duration(2000)
+			.attr("transform",end_text_transform)
 			.style("opacity","1");
 }
 
@@ -134,7 +213,7 @@ function jitter(coord,span) {
 who = 0;
 function display(truc) {
 	go(truc,
-			{x:(++who % 2 == 0) ? jitter(100,50) : jitter(w-200,50),
+			{x:(++who % 2 == 0) ? jitter(100,200) : jitter(w-200,200),
 				y:jitter(h-300,100)},
 			{x:w/2,y:0},
 			(who % 2 == 0) ? "color1" : "color2",  // class
@@ -145,9 +224,55 @@ function display(truc) {
 counter = 0;
 d3.select("body").append("button")
 	.on("click", function() {
-		display(list[counter++ % list.length]);
+		display(list[counter++ % list.length]); //FIXME
 	})
 	.text("GO");
+d3.select("body").append("button")
+	.on("click", function() {
+		groupDisplay(list,counter,10);
+	})
+	.text("GO 10");
+	
+function groupDisplay(list,index,iterations) {
+	display(list[index % list.length]); ///FIXME
+	if(iterations==0) return;
+	setTimeout(function() {
+			groupDisplay(list,index+1,iterations-1);
+		},
+		100);
+}
 
+function sleep(ms) {
+	var start = new Date().getTime();
+	while (true) {
+		if((new Date().getTime() - start) > ms) {
+			break;
+		}
+	}	
+}
+
+
+
+
+/************************************************************/
+/*
+sh = ["M 7.3509385 -46.895035700000001 L 7.3511173 -46.895134200000001 7.3512303 -46.895200699999997 7.3513165 -46.895254100000002 7.3513796 -46.895293600000002",
+
+"M 7.1115901 -46.924386400000003 L 7.1114108 -46.924164099999999 7.1115497 -46.923916900000002 7.1116632 -46.923900500000002 7.11219 -46.924036700000002",
+
+"M 7.1159439 -46.817334600000002 L 7.1157935 -46.8173812 7.115199 -46.817600900000002 7.112004 -46.8190758",
+
+"M 6.5511003 -46.536803300000003 L 6.5512282 -46.5368663 6.5513702 -46.536963999999998 6.5515493 -46.537125799999998 6.5516213 -46.537239999999997 6.5516729 -46.537344099999999 6.5517121 -46.537545600000001"];
+
+svg.append("g").selectAll("path")
+	.data(sh)
+	.enter()
+	.append("path")
+		.attr("d",function(d){console.log(d);return d;});
+
+svg.select("g")
+	.attr("transform","translate(200,1200) scale(20)");
+*/
+/**************************************************************/
 </script>
 </body>
