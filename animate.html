@@ -16,12 +16,6 @@ body {
 svg {
 	//border: 1px solid white;
 }
- 
-/*
-svg * {
-	fill: #be64ac;
-}
-*/
 
 /* //Adobe CC CS04 scheme
 #F6F88C
@@ -41,15 +35,10 @@ button {
 }
 
 path {
-	//stroke: #be64ac;
-	//stroke-width: 0.25em;
-	//fill: #fff;
-	//stroke: #fff;
 }
 
 text {
 	stroke: none !important;
-	//filter:url(#dropshadow);
 }
 
 rect {
@@ -59,24 +48,14 @@ rect {
 </style>
 <body>
 <svg>
-<!-- filter to drop shadow on text :: very ineffective -->
-<!--
-<filter id="dropshadow" height="130%">
-  <feGaussianBlur in="SourceAlpha" stdDeviation="3"/> 
-  <feOffset dx="2" dy="2" result="offsetblur"/> 
-  <feMerge> 
-    <feMergeNode/> 
-    <feMergeNode in="SourceGraphic"/> 
-  </feMerge>
-</filter>
--->
 </svg>
 <script src="./d3.v3.min.js"></script>
 <script src="./d3-jetpack.js"></script>
 <script>
 
 /*
-//optimisation: d3 over webgl ? perte souplesse xml ?
+//optimisation: d3 over webgl ? 
+
 */
 
 
@@ -112,16 +91,43 @@ d3.select("body").insert("button","svg")
 	.text("TEST IMAGE");
 */
 
+/************************************************************/
+/* Main display functions */
+//displays one item -> switch for animation type
+function display(data_item) {
+	switch(data_item.animation) {
+		case 0:
+			go(data_item);
+			break;
+			
+		default:
+			goImage(data_item);
+			break;
+	}
+}
+	
+//displays 'iterations' items at once in 'list', starting at 'index', with a delay of 'ms_duration' between them (calls "display")
+function groupDisplay(list,index,iterations,ms_duration) {
+	display(list[index % list.length]);
+	if(iterations==0) return;
+	setTimeout(function() {
+			groupDisplay(list,index+1,iterations-1,ms_duration);
+		},
+		ms_duration);
+}
+
+// jitter a value in the given span
+function jitter(num,span) {
+	return num + (Math.random()>0.5 ? -1 : 1) * Math.random()*span/2;
+}
 
 	
-/***********
+/****************
 Global Variables
-***********/
-
+*****************/
 
 //colors of shapes
 var fillcolors = [
-	//"#333746",
 	"#74C4D4",
 	"#93d6c3",
 	"#F6F88C",
@@ -131,7 +137,6 @@ var fillcolors = [
 
 /* darken 20% */
 var strokecolors = [
-	//"#1A1E2D",
 	"#4191A1",
 	"#93d6c3",
 	"#C3C559",
@@ -151,15 +156,13 @@ var shapes = [
 	"M 140.6,19.1 C 121,40.1 123.4,73 133.3,100 C 143.3,127 163.7,156 178.1,180.9 L 104.4,180.9 C 97.4,154.9 88.2,127 87.7,100 C 87.1,73 104.9,38.1 123.9,19.1 L 140.6,19.1 z M 121.8,19.1 C 102.7,38.1 82.7,73 82.1,100 C 81.5,127 88.4,154.9 95.4,180.9 L 21.9,180.9 C 21.9,152.2 26.7,127 36.6,100 C 46.5,73 80.1,34.7 104.3,19.1 L 121.8,19.1 z ",
 	/* 4 rectangle_shape = */
 	"M0,5 150,5 150,190 5,190"
-	//FIXME !!!
+	//FIXME add other shapes
 ]
 
+var w = 1200;
+var h = 800;
 
-
-w = 1200;
-h = 800;
-
-svg = d3.select("svg")
+var svg = d3.select("svg")
 	.attr("width",w)
 	.attr("height",h);	
 
@@ -167,7 +170,7 @@ svg = d3.select("svg")
 Display functions
 *********************/
 
-/** Animate objects from to (starts on left- starts on right) */
+/** Animate objects from to (starts on left or starts on right) - 1st type of animation */
 function go(data_item) {
 	from = {
 			x:(data_item.side==0) ? jitter(200,300) : jitter(w-300,300),
@@ -180,7 +183,7 @@ function go(data_item) {
 		.style("fill",fillcolors[data_item.color])
 		.style("stroke",strokecolors[data_item.color]);
 	
-	create(g,data_item); //TODO : create en fonction du type d'animation !!
+	create(g,data_item);
 	
 	var	scale = 0.1;
 	g.transition()
@@ -190,7 +193,7 @@ function go(data_item) {
 			.remove(); //TODO if needed with optimization
 }
 
-/***************************************/
+/** Displays an image in the middle of the screen - 2nd type of animation */
 function goImage(data_item) {
 	var img_width=1000, 
 		img_height=600;
@@ -202,21 +205,23 @@ function goImage(data_item) {
 			.attr("width",img_width)
 			.attr("height",img_height)
 			.attr("xlink:href",data_item.url);
-			//FIXME
-	var random_scale = 1+(Math.random()/3)
-	g.transition()
-		.duration(8000)
-		.attr("transform","scale ("+random_scale+")") 
-		.style("opacity","0")
-		.remove(); //TODO if needed with optimization
+	var random_scale = jitter(1,0.3);
+	g.style("opacity","0")
+		.transition()
+		.duration(1000)
+		.style("opacity","1")
+		.transition()
+			.duration(7000)
+			.attr("transform","scale ("+random_scale+")") 
+			.style("opacity","0")
+			.remove(); //TODO if needed with optimization
 }
 
-
-/** Creates a new "item" that is displayed wether right or left and attach it to the element
-text is an array with multiple lines */
+/** Creates a new "item" (consisting of text + svg path) that is displayed wether right or left and attach it to 'element'.*/
 function create(element,d) {
-	var start_text_transform = "translate("+(d.side!=0?"-30":"180")+",50)";
-	var end_text_transform = "translate("+(d.side=!0?"30":"120")+",50)";
+	console.log(d.side!=0);
+	var start_text_transform = "translate("+(d.side!=0?"-130":"200")+",50)";
+	var end_text_transform = "translate("+(d.side!=0?"-60":"270")+",50)";
 	
 	//append the text
 	var text_g = element
@@ -228,6 +233,7 @@ function create(element,d) {
 		.style("text-anchor",d.side==0?"end":"start")
 		.tspans([d.ligne1,d.ligne2,d.ligne3,d.ligne4],25); //25 = interligne
 		
+	//bounding box around texte
 	var bbox = text_g.node().getBBox();
 	var pad = 5;
 	var bbox_g = element.insert("g",":first-child")
@@ -246,10 +252,8 @@ function create(element,d) {
 	shape_g.transition()
 		.duration(1000)
 		.attr("transform","scale("+d.scale+")")
-	//console.log(d.scale);
 	
-	//FIXME -> takes only the text...
-	
+	//fade in for text
 	text_g
 		.style("opacity","0")
 		.transition()
@@ -264,12 +268,6 @@ function create(element,d) {
 			.style("opacity","1");
 }
 
-// jitter along one dimension in the given span
-function jitter(coord,span) {
-	return coord + (Math.random()>0.5 ? -1 : 1) * Math.random()*span/2;
-}
-
-
 
 /**********************************************/
 // Import dataset
@@ -279,14 +277,8 @@ var fulldata = [];
 function loadData() {
 	
 	var dsv = d3.dsv(";", "text/plain");
-	dsv("00_main.csv", function(error, data) {
-	//dsv("test_poids_mots.csv", function(error, data) {
-	//dsv("03_test_poids_mots.csv", function(error, data) {
-	//dsv("00_roads.csv", function(error, data) {
-	//dsv("01_test-itineraires.csv", function(error, data) {
-	//dsv("02_stateless.csv", function(error, data) {
+	dsv("000_main.csv", function(error, data) {
 	  data.forEach(function(d) {
-		  //console.log(d.Scale);
 		  fulldata.push({
 			  ligne1:d.Ligne1,
 			  ligne2:d.Ligne2,
@@ -300,44 +292,9 @@ function loadData() {
 			  scale:+d.Scale
 		  })
 		})
-		//console.log("truc");
 	  });
 }
 loadData();
-
-
-
-
-
-
-
-/************************************************************/
-/* Main functions, randomized for tests. TODO: check jitter values */
-function incCounter() {
-	counter++;
-}
-
-who = 0;
-function display(data_item) {
-	switch(data_item.animation) {
-		case 0:
-			go(data_item);
-			break;
-			
-		default:
-			goImage(data_item);
-			break;
-	}
-}
-	
-function groupDisplay(list,index,iterations,ms_duration) {
-	display(list[index % list.length]);
-	if(iterations==0) return;
-	setTimeout(function() {
-			groupDisplay(list,index+1,iterations-1,ms_duration);
-		},
-		ms_duration);
-}
 
 </script>
 </body>
