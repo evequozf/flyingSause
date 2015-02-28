@@ -14,7 +14,7 @@ body {
 }
  
 svg {
-	border: 1px solid white;
+	//border: 1px solid white;
 }
  
 /*
@@ -32,9 +32,10 @@ svg * {
 */
 
 button {
-	//color: black;
-	color: white;
-	border: 1px solid cyan;
+	color: #333;
+	//color: white;
+	//border: 1px solid cyan;
+	border: 1px solid #333;
 	background-color: black;
 	outline: none;
 }
@@ -43,7 +44,7 @@ path {
 	//stroke: #be64ac;
 	//stroke-width: 0.25em;
 	//fill: #fff;
-	stroke: #fff;
+	//stroke: #fff;
 }
 
 text {
@@ -102,18 +103,18 @@ d3.select("body").insert("button","svg")
 	})
 	.text("GO 100");
 
+d3.select("body").insert("button","svg")
+	.on("click", function() {
+		goImage(null);
+	})
+	.text("TEST IMAGE");
+
 
 	
 /***********
 Global Variables
 ***********/
 
-//TODO : fix import CSV
-list = [
-	["Truc","1920 Steffisburg"],
-	["Machin","Huile sur toile","1986"],
-	["Bidule","Rue du Clos","1211 Genève"]
-]
 
 //colors of shapes
 var fillcolors = [
@@ -142,7 +143,7 @@ var shapes = [
 	/* 2 personne_shape = */
 	"M0,5 150,5 150,190 5,190",
 	/* 3 route = */
-	"M0,5 150,5 150,190 5,190",
+	"M 140.6,19.1 C 121,40.1 123.4,73 133.3,100 C 143.3,127 163.7,156 178.1,180.9 L 104.4,180.9 C 97.4,154.9 88.2,127 87.7,100 C 87.1,73 104.9,38.1 123.9,19.1 L 140.6,19.1 z M 121.8,19.1 C 102.7,38.1 82.7,73 82.1,100 C 81.5,127 88.4,154.9 95.4,180.9 L 21.9,180.9 C 21.9,152.2 26.7,127 36.6,100 C 46.5,73 80.1,34.7 104.3,19.1 L 121.8,19.1 z ",
 	/* 4 rectangle_shape = */
 	"M0,5 150,5 150,190 5,190"
 	//FIXME !!!
@@ -151,7 +152,7 @@ var shapes = [
 
 
 w = 1200;
-h = 400;
+h = 800;
 
 svg = d3.select("svg")
 	.attr("width",w)
@@ -162,10 +163,7 @@ Display functions
 *********************/
 
 /** Animate objects from to (starts on left- starts on right) */
-function go(data_item,from,to) {
-	//default parameters
-	(typeof colorindex === "undefined") ? 0 : colorindex;
-	(typeof isOnLeft === "undefined") ? true : false;
+function go(data_item) {
 	from = {
 			x:(data_item.side==0) ? jitter(200,300) : jitter(w-300,300),
 		 	y:jitter(h-300,100)
@@ -176,14 +174,38 @@ function go(data_item,from,to) {
 		.attr("transform","translate("+from.x+","+from.y+")")
 		.style("fill",fillcolors[data_item.color])
 		.style("stroke",strokecolors[data_item.color]);
+	
 	create(g,data_item); //TODO : create en fonction du type d'animation !!
+	
 	var	scale = 0.1;
 	g.transition()
 			.duration(8000)
 			.attr("transform","scale ("+scale+") translate("+to.x/scale+","+to.y/scale+")") 
 			.style("opacity","0")
-			//.remove(); //TODO if needed with optimization
+			.remove(); //TODO if needed with optimization
 }
+
+/***************************************/
+function goImage(data_item) {
+	var img_width=1000, 
+		img_height=600;
+	var g = svg.append("g")
+		.attr("transform","translate("+(w-img_width)/2+","+(h-img_height)/2+")")
+		.append("image")
+			.attr("x","0")
+			.attr("y","0")
+			.attr("width",img_width)
+			.attr("height",img_height)
+			.attr("xlink:href","images/Agatha_Ostertag_-_CH-BAR_-_30313955.tif.jpg");
+			//FIXME
+	var random_scale = 1+(Math.random()/3)
+	g.transition()
+		.duration(8000)
+		.attr("transform","scale ("+random_scale+")") 
+		.style("opacity","0")
+		.remove(); //TODO if needed with optimization
+}
+
 
 /** Creates a new "item" that is displayed wether right or left and attach it to the element
 text is an array with multiple lines */
@@ -251,7 +273,7 @@ var fulldata = [];
 function loadData() {
 	
 	var dsv = d3.dsv(";", "text/plain");
-	dsv("test-eglises-2.csv", function(error, data) {
+	dsv("test-eglises-3.csv", function(error, data) {
 	  data.forEach(function(d) {
 		  fulldata.push({
 			  ligne1:d.Ligne1,
@@ -261,9 +283,9 @@ function loadData() {
 			  shape:+d.Shape,
 			  side:+d.Show_on_side,
 			  color:+d.Source_dataset,
-			  animation:d.Animation_type,
+			  animation:+d.Animation_type,
 			  url:d.Image_URL,
-			  scale:d.Scale
+			  scale:+d.Scale
 		  })
 		})
 		//console.log("truc");
@@ -285,14 +307,15 @@ function incCounter() {
 
 who = 0;
 function display(data_item) {
-	go(data_item/*,
-			{x:(++who % 2 == 0) ? jitter(200,300) : jitter(w-300,300),
-				y:jitter(h-300,100)},
-			{x:w/2,y:0}/*,
-			Math.round((Math.random()*fillcolors.length)), 
-			(who % 2)   //left or right
-			*/
-		);
+	switch(data_item.animation) {
+		case 0:
+			go(data_item);
+			break;
+			
+		default:
+			goImage(data_item);
+			break;
+	}
 }
 	
 function groupDisplay(list,index,iterations,ms_duration) {
