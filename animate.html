@@ -62,18 +62,25 @@ rect {
 /***********
 Controls
 ************/
-counter = 0;
+counter = -1;
 d3.select("body").insert("button","svg")
 	.on("click", function() {
+		counter = (counter+1);
 		display(fulldata[counter]);
-		counter = (counter+1) % fulldata.length;
 	})
 	.text("GO");
 
 d3.select("body").insert("button","svg")
 	.on("click", function() {
-		groupDisplay(fulldata,counter,10,100);
-		counter = (counter+10) % fulldata.length;
+		display(fulldata[counter]);
+		counter = (counter-1);
+	})
+	.text("REW");
+
+d3.select("body").insert("button","svg")
+	.on("click", function() {
+		groupDisplay(fulldata,counter+1,10,100);
+		counter = (counter+10);
 	})
 	.text("GO 10");	
 /*
@@ -176,6 +183,10 @@ function go(data_item) {
 			x:(data_item.side==0) ? jitter(200,300) : jitter(w-300,300),
 		 	y:jitter(h-300,100)
 		 };
+	via = {
+			x:jitter(w/2,50),
+			y:jitter(h/2,50)
+		};
 	to = {x:w/2,y:0};
 	
 	var g = svg.append("g")
@@ -187,6 +198,10 @@ function go(data_item) {
 	
 	var	scale = 0.1;
 	g.transition()
+		//.duration(5000)
+		//.ease("linear")
+		//.attr("transform","translate("+via.x+","+via.y+")")
+		.transition()
 			.duration(8000)
 			.attr("transform","scale ("+scale+") translate("+to.x/scale+","+to.y/scale+")") 
 			.style("opacity","0")
@@ -219,7 +234,8 @@ function goImage(data_item) {
 
 /** Creates a new "item" (consisting of text + svg path) that is displayed wether right or left and attach it to 'element'.*/
 function create(element,d) {
-	console.log(d.side!=0);
+	
+	//animated transition of entering text, depends on side
 	var start_text_transform = "translate("+(d.side!=0?"-130":"200")+",50)";
 	var end_text_transform = "translate("+(d.side!=0?"-60":"270")+",50)";
 	
