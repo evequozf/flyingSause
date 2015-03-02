@@ -83,6 +83,16 @@ d3.select("body").insert("button","svg")
 		counter = (counter+10);
 	})
 	.text("GO 10");	
+
+d3.select("body").insert("button","svg")
+	.on("click", function() {
+		counter++;
+		circleIt(5);
+	})
+	.text("CIRCLE");		
+	
+	
+	
 /*
 d3.select("body").insert("button","svg")
 	.on("click", function() {
@@ -176,6 +186,74 @@ var svg = d3.select("svg")
 /********************
 Display functions
 *********************/
+
+function circleIt(num_items) {
+	var gs = d3.select("svg").selectAll(".circling")
+		.data(fulldata.filter(function(d,i) {return i<counter+num_items;}))
+		.enter()
+			.append("g")
+			.each(function(d) {console.log(this);})
+			.classed("circling",true);
+	
+	/****** quasi copy paste from create ******/
+	
+	//animated transition of entering text, depends on side
+	start_text_transform = function(d) {
+			return "translate("+(d.side!=0?"-130":"200")+",50)";
+		};
+	end_text_transform = function(d) {
+		"translate("+(d.side!=0?"-60":"270")+",50)";
+		};
+	
+	//append the text
+	var text_g = gs
+		.append("g")
+		.attr("transform",start_text_transform)
+	text_g.append("text")
+		.attr("x",0)
+		.attr("y",0)
+		.style("text-anchor",function(d){return d.side==0?"end":"start"})
+		.tspans(function(d) {
+			return [d.ligne1,d.ligne2,d.ligne3,d.ligne4];}
+			,25); //25 = interligne
+		
+	//bounding box around texte
+	var bbox = text_g.node().getBBox();
+	var pad = 5;
+	var bbox_g = gs.insert("g",":first-child")
+		.attr("transform",start_text_transform)
+	bbox_g.append("rect")
+		.attr("x",bbox.x-pad)
+		.attr("y",bbox.y-pad)
+		.attr("width",bbox.width+2*pad)
+		.attr("height",bbox.height+2*pad);
+	
+	//append the shape
+	var shape_g = gs.insert("g",":first-child")
+			.attr("transform","scale(0)");
+	shape_g.append("path")
+		.attr("d",function(d) {return shapes[d.shape];})
+	shape_g.transition()
+		.duration(1000)
+		.attr("transform",function(d) {return "scale("+d.scale+")";})
+	
+	//fade in for text
+	text_g
+		.style("opacity","0")
+		.transition()
+		.duration(2000)
+			.attr("transform",end_text_transform)
+			.style("opacity","1");
+	bbox_g
+		.style("opacity","0")
+		.transition()
+		.duration(2000)
+			.attr("transform",end_text_transform)
+			.style("opacity","1");
+	
+	/****** quasi copy paste from create ****/
+}
+
 
 /** Animate objects from to (starts on left or starts on right) - 1st type of animation */
 function go(data_item) {
@@ -282,6 +360,8 @@ function create(element,d) {
 		.duration(2000)
 			.attr("transform",end_text_transform)
 			.style("opacity","1");
+			
+	return element;
 }
 
 
