@@ -88,12 +88,15 @@ d3.select("body").insert("button","svg")
 
 
 /********* CIRCLE FUNCTIONS ***********/
-var num_items = 40; //FIXME
+var num_items = 35; //FIXME : hard-coded
 var circle_counter = 0;
 d3.select("body").insert("button","svg")
 	.on("click", function() {
+		console.log("counter before "+counter);
 		circle_counter=counter;
+		console.log("circle counter "+counter);
 		counter += num_items;
+		console.log("counter after "+counter);
 		circleIt(circle_counter,num_items);
 	})
 	.text("SHOW CIRCLE");	
@@ -219,17 +222,19 @@ var svg = d3.select("svg")
 Display functions
 *********************/
 
-//moves a circle from the center to the perimeter, and scale it down
+//moves the i-th circle from the center to the perimeter, and scale it down
 function hideInCircle(i,num_items) {
+	var index_in_elements = i-(counter-num_items)-1; //index of item in list of elements shown around circle
 	var gs = d3.select("svg").selectAll(".circling")
 		.filter(function(d) {return d===fulldata[i];});
 	gs.transition().duration(500)
 		.attr("transform",function(d) {
-			return placeOnPerimeter(d,i,num_items)
+			return placeOnPerimeter(d,index_in_elements,num_items)
 		})
 	//text component -> hide it
 	gs.selectAll(".label")
 		.transition()
+		.duration(2000)
 		.style("opacity","0");
 }
 
@@ -248,26 +253,30 @@ function showInCircle(i) {
 
 /* helper function for circle view: returns transform giving position of element with data d on the perimeter of the circle */
 function placeOnPerimeter(d,i,num_items) {
+	console.log("perimeter "+i);
 	var scale = 4*d.scale/num_items;
 	var angle = (2*Math.PI*i/num_items)-Math.PI/2;
-	var radius = (num_items/6)*(shape_h)/(2*Math.PI);
+	var radius = getRadius(num_items);
 	var x = (w/2 + radius*Math.cos(angle))/scale;
 	var y = (h/2 + radius*Math.sin(angle))/scale;
 	return "scale("+scale+") translate("+x+","+y+")";
 };
 
+function getRadius(num_items) {
+	return (num_items/6)*(shape_h)/(2*Math.PI);
+}
+
 /* Puts "num_items" items into a circle, switch to "circle" display mode */
 function circleIt(circle_counter,num_items) {
 	var gs = d3.select("svg").selectAll(".circling")
 		.data(fulldata.filter(function(d,i) {
-				return i <= circle_counter+num_items;
+				return (i > circle_counter) && (i <= circle_counter+num_items);
 			}))
 		.enter()
 			.append("g")
 			.classed("circling",true)
 			.style("fill",function(d) {return fillcolors[d.color];})
 			.style("stroke",function(d) {return strokecolors[d.color];});
-	
 	//append the text
 	var text_g = gs
 		.append("g")
@@ -276,7 +285,7 @@ function circleIt(circle_counter,num_items) {
 	text_g.append("text")
 		.attr("x",0)
 		.attr("y",0)
-		.style("text-anchor",function(d){return d.side==0?"end":"start"})
+		//.style("text-anchor",function(d){return d.side==0?"end":"start"})
 		.tspans(function(d) {
 			return [d.ligne1,d.ligne2,d.ligne3,d.ligne4];}
 			,25); //25 = interligne
@@ -313,7 +322,9 @@ function unCircleIt() {
 	d3.select("svg").selectAll(".circling")
 		.transition()
 		.duration(6000)
-		.attr("transform", "translate("+((w-shape_w)/2)+","+((h-shape_h)/2)+")")
+		.attr("transform", 
+			"translate("+((w-shape_w)/2)+","+((h-shape_h)/2)+") "+
+			"rotate(180 "+getRadius(num_items)/2+" "+getRadius(num_items)/2+")")
 		.style("opacity","0")
 		.remove();
 }
