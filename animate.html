@@ -84,12 +84,41 @@ d3.select("body").insert("button","svg")
 	})
 	.text("GO 10");	
 
+
+
+
+/********* CIRCLE FUNCTIONS ***********/
+var num_items = 40; //FIXME
+var circle_counter = 0;
 d3.select("body").insert("button","svg")
 	.on("click", function() {
-		counter++;
-		circleIt(5);
+		circle_counter=counter;
+		counter += num_items;
+		circleIt(circle_counter,num_items);
 	})
-	.text("CIRCLE");		
+	.text("SHOW CIRCLE");	
+
+d3.select("body").insert("button","svg")
+	.on("click", function() {
+		hideInCircle(circle_counter,num_items);
+		circle_counter++;
+		if(circle_counter > counter)
+			circle_counter -= num_items; //go for another round
+		showInCircle(circle_counter);
+	})
+	.text("GO CIRCLE");	
+	
+d3.select("body").insert("button","svg")
+	.on("click", function() {
+		hideInCircle(circle_counter,num_items);
+	})
+	.text("HIDE CIRCLE ITEM");	
+
+d3.select("body").insert("button","svg")
+	.on("click", function() {
+		unCircleIt();
+	})
+	.text("HIDE CIRCLE");		
 	
 	
 	
@@ -177,7 +206,10 @@ var shapes = [
 ]
 
 var w = 1200;
-var h = 800;
+var h = 600;
+
+var shape_w = 150;
+var shape_h = 200;
 
 var svg = d3.select("svg")
 	.attr("width",w)
@@ -187,28 +219,60 @@ var svg = d3.select("svg")
 Display functions
 *********************/
 
-function circleIt(num_items) {
+//moves a circle from the center to the perimeter, and scale it down
+function hideInCircle(i,num_items) {
 	var gs = d3.select("svg").selectAll(".circling")
-		.data(fulldata.filter(function(d,i) {return i<counter+num_items;}))
+		.filter(function(d) {return d===fulldata[i];});
+	gs.transition().duration(500)
+		.attr("transform",function(d) {
+			return placeOnPerimeter(d,i,num_items)
+		})
+	//text component -> hide it
+	gs.selectAll(".label")
+		.transition()
+		.style("opacity","0");
+}
+
+//moves a circle from the perimeter to the center, and scale it up
+function showInCircle(i) {
+	var gs = d3.select("svg").selectAll(".circling")
+		.sort(function(d) {return d===fulldata[i] ? 1 : -1}) //bring i forward
+		.filter(function(d) {return d===fulldata[i];}); //select only i
+	gs.transition().duration(500)
+		.attr("transform", "translate("+((w-shape_w)/2)+","+((h-shape_h)/2)+")")	
+	//text component -> show it
+	gs.selectAll(".label")
+		.transition()
+		.style("opacity","1");
+}
+
+/* helper function for circle view: returns transform giving position of element with data d on the perimeter of the circle */
+function placeOnPerimeter(d,i,num_items) {
+	var scale = 4*d.scale/num_items;
+	var angle = (2*Math.PI*i/num_items)-Math.PI/2;
+	var radius = (num_items/6)*(shape_h)/(2*Math.PI);
+	var x = (w/2 + radius*Math.cos(angle))/scale;
+	var y = (h/2 + radius*Math.sin(angle))/scale;
+	return "scale("+scale+") translate("+x+","+y+")";
+};
+
+/* Puts "num_items" items into a circle, switch to "circle" display mode */
+function circleIt(circle_counter,num_items) {
+	var gs = d3.select("svg").selectAll(".circling")
+		.data(fulldata.filter(function(d,i) {
+				return i <= circle_counter+num_items;
+			}))
 		.enter()
 			.append("g")
-			.each(function(d) {console.log(this);})
-			.classed("circling",true);
-	
-	/****** quasi copy paste from create ******/
-	
-	//animated transition of entering text, depends on side
-	start_text_transform = function(d) {
-			return "translate("+(d.side!=0?"-130":"200")+",50)";
-		};
-	end_text_transform = function(d) {
-		"translate("+(d.side!=0?"-60":"270")+",50)";
-		};
+			.classed("circling",true)
+			.style("fill",function(d) {return fillcolors[d.color];})
+			.style("stroke",function(d) {return strokecolors[d.color];});
 	
 	//append the text
 	var text_g = gs
 		.append("g")
-		.attr("transform",start_text_transform)
+		.classed("label",true)
+		.style("opacity","0");
 	text_g.append("text")
 		.attr("x",0)
 		.attr("y",0)
@@ -217,41 +281,41 @@ function circleIt(num_items) {
 			return [d.ligne1,d.ligne2,d.ligne3,d.ligne4];}
 			,25); //25 = interligne
 		
-	//bounding box around texte
-	var bbox = text_g.node().getBBox();
+	//bounding box around text in same g
 	var pad = 5;
-	var bbox_g = gs.insert("g",":first-child")
-		.attr("transform",start_text_transform)
-	bbox_g.append("rect")
-		.attr("x",bbox.x-pad)
-		.attr("y",bbox.y-pad)
-		.attr("width",bbox.width+2*pad)
-		.attr("height",bbox.height+2*pad);
+	text_g.each(function(d) {
+		var bbox = this.parentNode.getBBox();
+		d3.select(this).insert("rect",":first-child")
+			.attr("x",bbox.x-pad)
+			.attr("y",bbox.y-pad)
+			.attr("width",bbox.width+2*pad)
+			.attr("height",bbox.height+2*pad);
+		});
 	
-	//append the shape
-	var shape_g = gs.insert("g",":first-child")
-			.attr("transform","scale(0)");
+	//append the shape - other g
+	var shape_g = gs.insert("g",":first-child");
 	shape_g.append("path")
 		.attr("d",function(d) {return shapes[d.shape];})
-	shape_g.transition()
-		.duration(1000)
-		.attr("transform",function(d) {return "scale("+d.scale+")";})
 	
-	//fade in for text
-	text_g
-		.style("opacity","0")
+	//create circle, animate items from center to perimeter
+	gs.style("opacity","0")
+		.attr("transform", "translate("+((w-shape_w)/2)+","+((h-shape_h)/2)+")")
 		.transition()
-		.duration(2000)
-			.attr("transform",end_text_transform)
-			.style("opacity","1");
-	bbox_g
-		.style("opacity","0")
+		.duration(6000)
+		.style("opacity","1")
+		.attr("transform",function(d,i) {
+			return placeOnPerimeter(d,i,num_items)
+		});
+}
+
+/* nicely hide circle */
+function unCircleIt() {
+	d3.select("svg").selectAll(".circling")
 		.transition()
-		.duration(2000)
-			.attr("transform",end_text_transform)
-			.style("opacity","1");
-	
-	/****** quasi copy paste from create ****/
+		.duration(6000)
+		.attr("transform", "translate("+((w-shape_w)/2)+","+((h-shape_h)/2)+")")
+		.style("opacity","0")
+		.remove();
 }
 
 
